@@ -6,7 +6,8 @@ layer only needs to handle rendering, not calculations.
 
 from datetime import date, timedelta
 
-from services.transaction_service import get_all_transactions, search_transactions
+from database.database import search_transactions as _db_search
+from services.transaction_service import get_all_transactions
 from services.budget_service import get_budget_status
 from utils.calculations import (
     calculate_monthly_summary,
@@ -67,7 +68,7 @@ def get_category_spending(month: int, year: int) -> dict:
     """
     date_from = f"{year}-{month:02d}-01"
     date_to   = f"{year}-{month:02d}-31"
-    transactions = search_transactions(
+    transactions = _db_search(
         type_filter="Expense", date_from=date_from, date_to=date_to
     )
     totals = calculate_category_totals(transactions)
@@ -108,7 +109,7 @@ def get_spending_trend(months_back: int = 6) -> dict:
 
         date_from = f"{year}-{month:02d}-01"
         date_to   = f"{year}-{month:02d}-31"
-        txs = search_transactions(
+        txs = _db_search(
             type_filter="Expense", date_from=date_from, date_to=date_to
         )
         total = calculate_total_expenses(txs)

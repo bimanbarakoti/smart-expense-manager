@@ -1,5 +1,6 @@
 """Tests for utils/calculations.py"""
 
+import sqlite3
 import pytest
 from utils.calculations import (
     calculate_total_income,
@@ -9,6 +10,9 @@ from utils.calculations import (
     calculate_category_percentage,
     calculate_monthly_summary,
     calculate_category_totals,
+    calculate_all_monthly_summaries,
+    calculate_budget_status,
+    _val,
 )
 
 SAMPLE = [
@@ -80,3 +84,68 @@ def test_category_totals():
 
 def test_category_totals_empty():
     assert calculate_category_totals([]) == {}
+
+
+# ── calculate_all_monthly_summaries ───────────────────────────────────────────
+
+def test_all_monthly_summaries_length():
+    """Always returns exactly 12 entries for the requested year."""
+    result = calculate_all_monthly_summaries(SAMPLE, 2024)
+    assert len(result) == 12
+    assert [r["month"] for r in result] == list(range(1, 13))
+
+
+def test_all_monthly_summaries_values():
+    result = calculate_all_monthly_summaries(SAMPLE, 2024)
+    jan = result[0]   # month 1
+    assert jan["income"]   == 3500.0
+    assert jan["expenses"] == 1000.0
+    assert jan["balance"]  == 2500.0
+
+
+def test_all_monthly_summaries_empty_year():
+    """Year with no data returns all zeros."""
+    result = calculate_all_monthly_summaries(SAMPLE, 2020)
+    assert all(r["income"] == 0.0 and r["expenses"] == 0.0 for r in result)
+
+
+# ── calculate_budget_status ───────────────────────────────────────────────────
+
+def test_budget_status_under():
+    s = calculate_budget_status(500.0, 200.0)
+    assert s["remaining"]       == 300.0
+    assert s["percentage_used"] == 40.0
+    assert s["is_over_budget"]  is False
+
+
+def test_budget_status_over():
+    s = calculate_budget_status(100.0, 150.0)
+    assert s["remaining"]      == -50.0
+    assert s["is_over_budget"] is True
+
+
+def test_budget_status_exactly_at_limit():
+    s = calculate_budget_status(300.0, 300.0)
+    assert s["remaining"]       == 0.0
+    assert s["percentage_used"] == 100.0
+    assert s["is_over_budget"]  is False
+
+
+# ── _val helper ───────────────────────────────────────────────────────────────
+
+def test_val_reads_dict():
+    assert _val({"type": "Income", "amount": 10.0}, "amount") == 10.0
+
+
+def test_val_reads_sqlite_row():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT 42 AS amount").fetchone()
+    assert _val(row, "amount") == 42
+    conn.close()
+
+
+def test_val_reads_model_object():
+    class Stub:
+        amount = 99.9
+    assert _val(Stub(), "amount") == 99.9

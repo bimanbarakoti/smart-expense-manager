@@ -162,3 +162,21 @@ def test_budget_status_multiple_categories(conn):
     names = {s["category_name"] for s in status}
     assert "Food2" in names
     assert "Rent" in names
+
+
+# ── Budget model ───────────────────────────────────────────────────────────────
+
+def test_budget_to_dict(setup):
+    conn, cat_id = setup
+    b = create_budget(cat_id, 7, 2024, "400", conn)
+    d = b.to_dict()
+    assert d["month"]  == 7
+    assert d["year"]   == 2024
+    assert d["amount"] == 400.0
+    assert "id" in d
+
+
+def test_budget_repr(setup):
+    conn, cat_id = setup
+    b = create_budget(cat_id, 7, 2024, "400", conn)
+    assert "400" in repr(b)

@@ -178,3 +178,43 @@ def test_search_invalid_date_raises(setup):
 def test_search_no_results(setup):
     conn, *_ = setup
     assert search_transactions(keyword="ZZZNOMATCH", db=conn) == []
+
+
+def test_search_invalid_date_to_raises(setup):
+    conn, *_ = setup
+    with pytest.raises(TransactionError, match="Invalid date_to"):
+        search_transactions(date_to="not-a-date", db=conn)
+
+
+def test_search_by_category_id(setup):
+    conn, inc_id, exp_id = setup
+    create_transaction("Income",  "500", inc_id, "2024-05-01", "Salary",    "Cash", conn)
+    create_transaction("Expense", "100", exp_id, "2024-05-02", "Groceries", "Cash", conn)
+    results = search_transactions(category_id=inc_id, db=conn)
+    assert all(t.category_id == inc_id for t in results)
+
+
+# ── get_transaction_by_id ────────────────────────────────────────────────────
+
+def test_get_transaction_by_id_not_found(conn):
+    assert get_transaction_by_id(99999, conn) is None
+
+
+# ── Transaction model ──────────────────────────────────────────────────────────
+
+def test_transaction_to_dict(setup):
+    conn, inc_id, _ = setup
+    tx = create_transaction("Income", "1000", inc_id, "2024-05-01", "Salary", "Cash", conn)
+    d = tx.to_dict()
+    assert d["type"]   == "Income"
+    assert d["amount"] == 1000.0
+    assert d["date"]   == "2024-05-01"
+    assert "id" in d
+
+
+def test_transaction_repr(setup):
+    conn, inc_id, _ = setup
+    tx = create_transaction("Income", "500", inc_id, "2024-05-01", "Test", "Cash", conn)
+    r = repr(tx)
+    assert "Income" in r
+    assert "500" in r

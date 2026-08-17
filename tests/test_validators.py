@@ -7,6 +7,8 @@ from utils.validators import (
     validate_required,
     validate_transaction_type,
     validate_transaction,
+    validate_category_name,
+    validate_budget_amount,
 )
 
 
@@ -100,4 +102,42 @@ def test_transaction_missing_description():
 
 def test_transaction_bad_amount():
     valid, msg = validate_transaction("Income", "abc", "Salary", "2024-06-01", "June salary")
+    assert valid is False
+
+
+# ── validate_category_name ───────────────────────────────────────────────────
+
+def test_valid_category_name():
+    assert validate_category_name("Groceries") == (True, "")
+
+
+def test_category_name_empty():
+    valid, msg = validate_category_name("")
+    assert valid is False
+    assert "required" in msg
+
+
+def test_category_name_too_long():
+    valid, msg = validate_category_name("A" * 51)
+    assert valid is False
+    assert "50 characters" in msg
+
+
+def test_category_name_exactly_50_chars():
+    assert validate_category_name("A" * 50) == (True, "")
+
+
+# ── validate_budget_amount ──────────────────────────────────────────────────
+
+def test_valid_budget_amount():
+    assert validate_budget_amount("250.00") == (True, "")
+
+
+def test_budget_amount_zero():
+    valid, _ = validate_budget_amount("0")
+    assert valid is False
+
+
+def test_budget_amount_negative():
+    valid, _ = validate_budget_amount("-100")
     assert valid is False

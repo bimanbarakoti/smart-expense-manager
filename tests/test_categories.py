@@ -119,3 +119,25 @@ def test_delete_category_with_transactions_raises(conn):
     create_transaction("Expense", "50", cat.id, "2024-01-01", "Test", "Cash", conn)
     with pytest.raises(CategoryError, match="transactions are linked"):
         delete_category(cat.id, conn)
+
+
+# ── get_category_by_id ───────────────────────────────────────────────────────────
+
+def test_get_category_by_id_not_found(conn):
+    assert get_category_by_id(99999, conn) is None
+
+
+# ── Category model ──────────────────────────────────────────────────────────────
+
+def test_category_to_dict(conn):
+    cat = create_category("Rent", "Expense", conn)
+    d = cat.to_dict()
+    assert d["name"] == "Rent"
+    assert d["type"] == "Expense"
+    assert "id" in d
+
+
+def test_category_repr(conn):
+    cat = create_category("Rent", "Expense", conn)
+    assert "Rent" in repr(cat)
+    assert "Expense" in repr(cat)
