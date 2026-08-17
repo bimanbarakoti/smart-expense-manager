@@ -129,13 +129,17 @@ class App(tk.Tk):
         self._content.pack(fill="both", expand=True)
 
         # Instantiate all views once and keep them in a dict
+        dashboard = DashboardView(self._content)
         self._views: dict[str, ttk.Frame] = {
-            "Dashboard":    DashboardView(self._content),
+            "Dashboard":    dashboard,
             "Transactions": TransactionListView(self._content),
             "Categories":   CategoryView(self._content),
             "Budgets":      BudgetView(self._content),
             "Reports":      ReportView(self._content),
         }
+        # Give the dashboard a reference to the navigation function
+        dashboard.set_navigate(self._show_view)
+
         for view in self._views.values():
             view.place(relwidth=1, relheight=1)
 
