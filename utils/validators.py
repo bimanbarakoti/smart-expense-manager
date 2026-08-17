@@ -1,11 +1,15 @@
-"""Input validation utilities."""
+"""Input validation utilities.
+
+All functions return a (is_valid: bool, error_message: str) tuple.
+An empty error string means the value is valid.
+"""
 
 from datetime import datetime
 from utils.constants import DATE_FORMAT, TRANSACTION_TYPES
 
 
 def validate_amount(value: str) -> tuple[bool, str]:
-    """Validate that amount is a positive number."""
+    """Validate that value is a positive number."""
     try:
         amount = float(value)
         if amount <= 0:
@@ -16,32 +20,50 @@ def validate_amount(value: str) -> tuple[bool, str]:
 
 
 def validate_date(value: str) -> tuple[bool, str]:
-    """Validate date string matches expected format."""
+    """Validate that value is a date string in YYYY-MM-DD format."""
     try:
         datetime.strptime(value, DATE_FORMAT)
         return True, ""
     except (ValueError, TypeError):
-        return False, f"Date must be in format YYYY-MM-DD."
+        return False, "Date must be in format YYYY-MM-DD."
 
 
 def validate_required(value: str, field_name: str = "Field") -> tuple[bool, str]:
-    """Validate that a required field is not empty."""
+    """Validate that a required field is not empty or whitespace-only."""
     if not value or not str(value).strip():
         return False, f"{field_name} is required."
     return True, ""
 
 
 def validate_transaction_type(value: str) -> tuple[bool, str]:
-    """Validate transaction type is one of the allowed values."""
+    """Validate that value is one of the allowed transaction types."""
     if value not in TRANSACTION_TYPES:
         return False, f"Type must be one of: {', '.join(TRANSACTION_TYPES)}."
     return True, ""
 
 
+def validate_category_name(name: str) -> tuple[bool, str]:
+    """Validate a category name: non-empty and within a reasonable length."""
+    valid, msg = validate_required(name, "Category name")
+    if not valid:
+        return False, msg
+    if len(name.strip()) > 50:
+        return False, "Category name must be 50 characters or fewer."
+    return True, ""
+
+
+def validate_budget_amount(value: str) -> tuple[bool, str]:
+    """Validate a budget amount — same rules as a transaction amount."""
+    return validate_amount(value)
+
+
 def validate_transaction(
     type_: str, amount: str, category: str, date: str, description: str
 ) -> tuple[bool, str]:
-    """Run all transaction field validations. Returns (is_valid, error_message)."""
+    """Run all transaction field validations in order.
+
+    Returns the first failure found, or (True, '') if all pass.
+    """
     checks = [
         validate_transaction_type(type_),
         validate_amount(amount),
