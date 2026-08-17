@@ -11,6 +11,7 @@ from services.transaction_service import (
     TransactionError,
 )
 from services.category_service import get_all_categories
+from services.export_service import export_transactions_csv, generate_pdf_report, ExportError
 from gui.transaction_form import TransactionForm
 from utils.constants import TRANSACTION_TYPES
 from utils.calculations import calculate_total_income, calculate_total_expenses
@@ -24,6 +25,7 @@ BTN_INCOME  = "#43a047"
 BTN_EXPENSE = "#e53935"
 BTN_EDIT    = "#1565c0"
 BTN_DELETE  = "#b71c1c"
+BTN_EXPORT  = "#6a1b9a"
 BTN_FG      = "#ffffff"
 HEADER_BG   = "#37474f"
 HEADER_FG   = "#ffffff"
@@ -114,6 +116,26 @@ class TransactionListView(ttk.Frame):
             command=self._delete_selected,
         )
         self._delete_btn.pack(side="left")
+
+        # Export buttons
+        export_frame = tk.Frame(bar, bg=WHITE)
+        export_frame.pack(side="right", padx=(0, 8))
+
+        tk.Button(
+            export_frame, text="📄  Export CSV",
+            bg=BTN_EXPORT, fg=BTN_FG,
+            font=("Segoe UI", 10), relief="flat",
+            padx=12, pady=6, cursor="hand2",
+            command=self._export_csv,
+        ).pack(side="left", padx=(0, 6))
+
+        tk.Button(
+            export_frame, text="📑  Generate PDF",
+            bg=BTN_EXPORT, fg=BTN_FG,
+            font=("Segoe UI", 10), relief="flat",
+            padx=12, pady=6, cursor="hand2",
+            command=self._generate_pdf,
+        ).pack(side="left")
 
     def _build_filter_bar(self) -> None:
         """Search box + type filter + category filter + date range."""
@@ -392,6 +414,22 @@ class TransactionListView(ttk.Frame):
         tx = self._selected_transaction()
         if tx:
             TransactionForm(self, on_save=self.refresh, transaction=tx)
+
+    def _export_csv(self) -> None:
+        try:
+            path = export_transactions_csv(self._transactions or None)
+            messagebox.showinfo("Export Successful",
+                                f"CSV exported to:\n{path}")
+        except ExportError as exc:
+            messagebox.showerror("Export Failed", str(exc))
+
+    def _generate_pdf(self) -> None:
+        try:
+            path = generate_pdf_report(self._transactions or None)
+            messagebox.showinfo("PDF Generated",
+                                f"PDF report saved to:\n{path}")
+        except ExportError as exc:
+            messagebox.showerror("Export Failed", str(exc))
 
     def _delete_selected(self) -> None:
         tx = self._selected_transaction()

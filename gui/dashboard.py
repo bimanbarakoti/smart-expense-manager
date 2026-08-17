@@ -2,7 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk
-from datetime import date
+from datetime import date, datetime, timezone
 
 from services.transaction_service import get_all_transactions
 from services.budget_service import get_budget_status
@@ -234,7 +234,7 @@ class DashboardView(ttk.Frame):
 
     def refresh(self) -> None:
         """Reload all data from the service layer and redraw every widget."""
-        today = date.today()
+        today = datetime.now(timezone.utc).astimezone().date()
         transactions = get_all_transactions()
 
         self._refresh_cards(transactions, today)
