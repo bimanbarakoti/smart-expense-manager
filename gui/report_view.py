@@ -16,16 +16,18 @@ from services.report_service import (
     get_budget_summary,
 )
 
-# ── Palette ───────────────────────────────────────────────────────────────────
-BG          = "#f4f6f9"
-WHITE       = "#ffffff"
-CARD_BORDER = "#e0e4ea"
-INCOME_CLR  = "#43a047"
-EXPENSE_CLR = "#e53935"
-BUDGET_CLR  = "#1565c0"
-SPENT_CLR   = "#e53935"
+from gui import theme as T
+
+# Local aliases
+BG          = T.CONTENT_BG
+WHITE       = T.PANEL_BG
+CARD_BORDER = T.CARD_BORDER
+INCOME_CLR  = T.INCOME_BTN
+EXPENSE_CLR = T.EXPENSE_BTN
+BUDGET_CLR  = T.BALANCE_CLR
+SPENT_CLR   = T.EXPENSE_BTN
 TREND_CLR   = "#7b1fa2"
-HEADER_FG   = "#37474f"
+HEADER_FG   = T.TEXT_HEADER
 
 # Matplotlib figure background matches the app palette
 FIG_BG      = "#f4f6f9"
@@ -71,19 +73,19 @@ class ReportView(ttk.Frame):
         bar.grid(row=0, column=0, sticky="ew")
 
         inner = tk.Frame(bar, bg=WHITE)
-        inner.pack(padx=16, fill="x")
+        inner.pack(padx=T.PAD_PAGE, fill="x")
 
         def lbl(text):
             tk.Label(inner, text=text, bg=WHITE, fg=HEADER_FG,
-                     font=("Segoe UI", 9)).pack(side="left", padx=(8, 2))
+                     font=T.FONT_SMALL).pack(side="left", padx=(8, 2))
 
-        # Year
+        # Year (used by Income vs Expenses chart)
         lbl("Year:")
         self._year_var = tk.IntVar(value=self._year)
         ttk.Spinbox(inner, from_=2000, to=2100,
                     textvariable=self._year_var, width=6).pack(side="left")
 
-        # Month (for category + budget charts)
+        # Month (used by Category Spending + Budget Summary charts)
         lbl("Month:")
         self._month_var = tk.StringVar(value=MONTH_NAMES[self._month])
         ttk.Combobox(
@@ -91,20 +93,22 @@ class ReportView(ttk.Frame):
             values=MONTH_NAMES[1:], state="readonly", width=11,
         ).pack(side="left")
 
-        # Trend window
-        lbl("Trend (months):")
+        # Trend window (used by Spending Trend chart)
+        lbl("Trend months:")
         self._trend_var = tk.IntVar(value=self._trend_months)
         ttk.Spinbox(inner, from_=2, to=24,
                     textvariable=self._trend_var, width=4).pack(side="left")
 
-        # Generate button
-        tk.Button(
-            inner, text="▶  Generate",
-            bg="#1565c0", fg=WHITE,
-            font=("Segoe UI", 10, "bold"), relief="flat",
-            padx=14, pady=4, cursor="hand2",
-            command=self.refresh,
+        T.make_button(
+            inner, "▶  Generate Charts", T.BALANCE_CLR, self.refresh,
+            font=T.FONT_H3, padx=14, pady=5,
         ).pack(side="left", padx=(16, 0))
+
+        # Hint
+        tk.Label(inner,
+                 text="Year applies to the first tab. Month applies to tabs 2 & 4.",
+                 bg=WHITE, fg=T.TEXT_MUTED,
+                 font=T.FONT_TINY).pack(side="left", padx=(16, 0))
 
     def _build_notebook(self) -> None:
         """Four tabs, one per chart type."""

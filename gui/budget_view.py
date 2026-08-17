@@ -13,20 +13,21 @@ from services.budget_service import (
     BudgetError,
 )
 from services.category_service import get_categories_by_type
+from gui import theme as T
 
-# ── Palette ───────────────────────────────────────────────────────────────────
-BG          = "#f4f6f9"
-WHITE       = "#ffffff"
-CARD_BORDER = "#e0e4ea"
-OK_CLR      = "#2e7d32"      # < 80 %
-WARN_CLR    = "#e65100"      # 80–99 %
-OVER_CLR    = "#c62828"      # ≥ 100 %
-PROG_BG     = "#e0e0e0"
-BTN_ADD     = "#1565c0"
-BTN_EDIT    = "#37474f"
-BTN_DEL     = "#b71c1c"
-BTN_FG      = "#ffffff"
-HEADER_FG   = "#37474f"
+# Local aliases for readability
+BG          = T.CONTENT_BG
+WHITE       = T.PANEL_BG
+CARD_BORDER = T.CARD_BORDER
+OK_CLR      = T.OK_CLR
+WARN_CLR    = T.WARN_CLR
+OVER_CLR    = T.OVER_CLR
+PROG_BG     = T.PROGRESS_BG
+BTN_ADD     = T.BALANCE_CLR
+BTN_EDIT    = T.TEXT_HEADER
+BTN_DEL     = T.BTN_DELETE
+BTN_FG      = T.BTN_FG
+HEADER_FG   = T.TEXT_HEADER
 
 MONTH_NAMES = [
     "", "January", "February", "March", "April", "May", "June",
@@ -63,67 +64,60 @@ class BudgetView(ttk.Frame):
                        highlightbackground=CARD_BORDER, highlightthickness=1)
         bar.grid(row=0, column=0, sticky="ew")
 
-        # ── Month navigation (left side) ──
         nav = tk.Frame(bar, bg=WHITE)
-        nav.pack(side="left", padx=16)
+        nav.pack(side="left", padx=T.PAD_PAGE)
 
-        tk.Button(nav, text="◀", bg=WHITE, fg=HEADER_FG,
-                  font=("Segoe UI", 11), relief="flat", cursor="hand2",
-                  command=self._prev_month).pack(side="left")
+        T.make_button(nav, "◀", WHITE, self._prev_month,
+                      fg=HEADER_FG, font=(T.FONT_FAMILY, 11),
+                      padx=8, pady=4).pack(side="left")
 
         self._month_label = tk.Label(
             nav, text=self._month_str(),
             bg=WHITE, fg=HEADER_FG,
-            font=("Segoe UI", 13, "bold"), width=18,
+            font=T.FONT_TITLE, width=18,
         )
-        self._month_label.pack(side="left", padx=8)
+        self._month_label.pack(side="left", padx=10)
 
-        tk.Button(nav, text="▶", bg=WHITE, fg=HEADER_FG,
-                  font=("Segoe UI", 11), relief="flat", cursor="hand2",
-                  command=self._next_month).pack(side="left")
+        T.make_button(nav, "▶", WHITE, self._next_month,
+                      fg=HEADER_FG, font=(T.FONT_FAMILY, 11),
+                      padx=8, pady=4).pack(side="left")
 
-        tk.Button(nav, text="Today", bg="#eceff1", fg=HEADER_FG,
-                  font=("Segoe UI", 9), relief="flat", cursor="hand2",
-                  padx=8, pady=2,
-                  command=self._go_today).pack(side="left", padx=(12, 0))
+        T.make_button(nav, "Today", T.FILTER_BG, self._go_today,
+                      fg=HEADER_FG, font=T.FONT_SMALL,
+                      padx=10, pady=3).pack(side="left", padx=(12, 0))
 
-        # ── Add Budget button (right side) ──
-        tk.Button(
-            bar, text="＋  Add Budget",
-            bg=BTN_ADD, fg=BTN_FG,
-            font=("Segoe UI", 10, "bold"), relief="flat",
-            padx=14, pady=6, cursor="hand2",
-            command=self._open_add_form,
-        ).pack(side="right", padx=16)
+        T.make_button(
+            bar, "＋  Add Budget", BTN_ADD, self._open_add_form,
+            font=T.FONT_H3, padx=14,
+        ).pack(side="right", padx=T.PAD_PAGE)
 
     def _build_summary_bar(self) -> None:
         """Three totals: budgeted / spent / remaining for the selected month."""
-        bar = tk.Frame(self, bg="#eceff1", pady=8,
+        bar = tk.Frame(self, bg=T.FILTER_BG, pady=8,
                        highlightbackground=CARD_BORDER, highlightthickness=1)
         bar.grid(row=1, column=0, sticky="ew")
 
-        inner = tk.Frame(bar, bg="#eceff1")
-        inner.pack(padx=16)
+        inner = tk.Frame(bar, bg=T.FILTER_BG)
+        inner.pack(padx=T.PAD_PAGE)
 
         def stat(label, color, attr):
-            f = tk.Frame(inner, bg="#eceff1")
+            f = tk.Frame(inner, bg=T.FILTER_BG)
             f.pack(side="left", padx=24)
-            tk.Label(f, text=label, bg="#eceff1", fg="#607d8b",
-                     font=("Segoe UI", 9)).pack()
+            tk.Label(f, text=label, bg=T.FILTER_BG, fg=T.TEXT_SECONDARY,
+                     font=T.FONT_SMALL).pack()
             var = tk.StringVar(value="£0.00")
             setattr(self, attr, var)
-            tk.Label(f, textvariable=var, bg="#eceff1", fg=color,
-                     font=("Segoe UI", 13, "bold")).pack()
+            tk.Label(f, textvariable=var, bg=T.FILTER_BG, fg=color,
+                     font=(T.FONT_FAMILY, 13, "bold")).pack()
 
-        stat("Total Budgeted",  "#1565c0", "_sum_budget_var")
-        stat("Total Spent",     OVER_CLR,  "_sum_spent_var")
-        stat("Total Remaining", OK_CLR,    "_sum_remaining_var")
+        stat("Total Budgeted",  T.BALANCE_CLR, "_sum_budget_var")
+        stat("Total Spent",     OVER_CLR,      "_sum_spent_var")
+        stat("Total Remaining", OK_CLR,        "_sum_remaining_var")
 
-        # Category count label on the right
         self._count_var = tk.StringVar(value="0 categories")
         tk.Label(inner, textvariable=self._count_var,
-                 bg="#eceff1", fg="#90a4ae",
-                 font=("Segoe UI", 9)).pack(side="left", padx=24)
+                 bg=T.FILTER_BG, fg=T.TEXT_MUTED,
+                 font=T.FONT_SMALL).pack(side="left", padx=24)
 
     def _build_cards_area(self) -> None:
         """Scrollable canvas holding one card per budgeted category."""

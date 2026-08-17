@@ -10,14 +10,19 @@ from gui.transaction_list import TransactionListView
 from gui.category_view import CategoryView
 from gui.budget_view import BudgetView
 from gui.report_view import ReportView
+from gui import theme as T
 
-# ── Colour palette ────────────────────────────────────────────────────────────
-SIDEBAR_BG = "#1e2a38"
-SIDEBAR_FG = "#cdd6e0"
-SIDEBAR_ACTIVE_BG = "#2e4057"
-SIDEBAR_ACTIVE_FG = "#ffffff"
-CONTENT_BG = "#f4f6f9"
-HEADER_BG = "#ffffff"
+# Sidebar dimensions
+_SIDEBAR_W = 210
+
+# Nav item definitions: (display label, view key, subtitle shown in header)
+_NAV_ITEMS = [
+    ("🏠  Dashboard",     "Dashboard",    "Overview of your finances"),
+    ("💳  Transactions",  "Transactions", "Add, edit and search transactions"),
+    ("🏷   Categories",   "Categories",   "Manage income & expense categories"),
+    ("📊  Budgets",       "Budgets",      "Set and track monthly budgets"),
+    ("📈  Reports",       "Reports",      "Charts and financial summaries"),
+]
 
 
 class App(tk.Tk):
@@ -27,117 +32,165 @@ class App(tk.Tk):
         super().__init__()
         self.title(APP_TITLE)
         self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
-        self.minsize(900, 600)
-        self.configure(bg=CONTENT_BG)
+        self.minsize(960, 620)
+        self.configure(bg=T.CONTENT_BG)
+
+        # Centre on screen
+        self.update_idletasks()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        x = (sw - APP_WIDTH) // 2
+        y = (sh - APP_HEIGHT) // 2
+        self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}+{x}+{y}")
 
         self._init_database()
-        self._active_button: tk.Button | None = None
+        self._active_btn: tk.Frame | None = None
         self._build_layout()
         self._show_view("Dashboard")
 
+    # ── Database ──────────────────────────────────────────────────────────────
+
     def _init_database(self) -> None:
-        """Initialise the database; show an error and exit on failure."""
         try:
             init_db()
-        except Exception as exc:  # noqa: BLE001
-            messagebox.showerror("Database Error", f"Failed to initialise database:\n{exc}")
+        except Exception as exc:
+            messagebox.showerror(
+                "Startup Error",
+                f"Could not initialise the database:\n\n{exc}\n\n"
+                "The application will now close.",
+            )
             self.destroy()
 
     # ── Layout ────────────────────────────────────────────────────────────────
 
     def _build_layout(self):
-        """Build the two-column layout: sidebar | content."""
         self._build_sidebar()
         self._build_content_area()
 
     def _build_sidebar(self):
-        sidebar = tk.Frame(self, bg=SIDEBAR_BG, width=200)
-        sidebar.pack(side="left", fill="y")
-        sidebar.pack_propagate(False)
+        self._sidebar = tk.Frame(self, bg=T.SIDEBAR_BG, width=_SIDEBAR_W)
+        self._sidebar.pack(side="left", fill="y")
+        self._sidebar.pack_propagate(False)
 
-        # App title / logo area
+        # ── Logo / app name ──
+        logo_frame = tk.Frame(self._sidebar, bg=T.SIDEBAR_BG)
+        logo_frame.pack(fill="x", pady=(20, 4))
         tk.Label(
-            sidebar,
-            text="💰 Expense\nManager",
-            bg=SIDEBAR_BG,
-            fg=SIDEBAR_ACTIVE_FG,
-            font=("Segoe UI", 13, "bold"),
-            pady=20,
-        ).pack(fill="x")
-
-        ttk.Separator(sidebar, orient="horizontal").pack(fill="x", padx=12, pady=(0, 10))
-
-        # Navigation buttons
-        nav_items = [
-            ("🏠  Dashboard",    "Dashboard"),
-            ("💳  Transactions", "Transactions"),
-            ("🏷️  Categories",   "Categories"),
-            ("📊  Budgets",      "Budgets"),
-            ("📈  Reports",      "Reports"),
-        ]
-        self._nav_buttons: dict[str, tk.Button] = {}
-        for label, view_name in nav_items:
-            btn = tk.Button(
-                sidebar,
-                text=label,
-                bg=SIDEBAR_BG,
-                fg=SIDEBAR_FG,
-                activebackground=SIDEBAR_ACTIVE_BG,
-                activeforeground=SIDEBAR_ACTIVE_FG,
-                font=("Segoe UI", 11),
-                anchor="w",
-                padx=20,
-                pady=10,
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                command=lambda v=view_name: self._show_view(v),
-            )
-            btn.pack(fill="x")
-            self._nav_buttons[view_name] = btn
-
-        # Version label at the bottom
+            logo_frame, text="💰",
+            bg=T.SIDEBAR_BG, fg=T.SIDEBAR_ACTIVE_FG,
+            font=(T.FONT_FAMILY, 22),
+        ).pack()
         tk.Label(
-            sidebar,
-            text="v1.0.0",
-            bg=SIDEBAR_BG,
-            fg="#5a6a7a",
-            font=("Segoe UI", 9),
-        ).pack(side="bottom", pady=10)
+            logo_frame, text="Expense Manager",
+            bg=T.SIDEBAR_BG, fg=T.SIDEBAR_ACTIVE_FG,
+            font=(T.FONT_FAMILY, 12, "bold"),
+        ).pack()
+
+        # Thin divider
+        tk.Frame(self._sidebar, bg="#2e3f52", height=1).pack(
+            fill="x", padx=16, pady=(12, 8))
+
+        # ── Nav section label ──
+        tk.Label(
+            self._sidebar, text="NAVIGATION",
+            bg=T.SIDEBAR_BG, fg="#4a6278",
+            font=(T.FONT_FAMILY, 7, "bold"),
+        ).pack(anchor="w", padx=20, pady=(4, 6))
+
+        # ── Nav buttons ──
+        self._nav_btns: dict[str, tk.Frame] = {}
+        for label, view_name, _ in _NAV_ITEMS:
+            self._nav_btns[view_name] = self._make_nav_btn(label, view_name)
+
+        # ── Version at bottom ──
+        tk.Label(
+            self._sidebar, text="v1.0.0",
+            bg=T.SIDEBAR_BG, fg="#3d5166",
+            font=(T.FONT_FAMILY, 8),
+        ).pack(side="bottom", pady=12)
+
+    def _make_nav_btn(self, label: str, view_name: str) -> tk.Frame:
+        """Build one sidebar nav item (Frame containing indicator + label)."""
+        container = tk.Frame(self._sidebar, bg=T.SIDEBAR_BG, cursor="hand2")
+        container.pack(fill="x")
+
+        # Left active-indicator bar (hidden by default)
+        indicator = tk.Frame(container, bg=T.SIDEBAR_BG, width=4)
+        indicator.pack(side="left", fill="y")
+
+        lbl = tk.Label(
+            container, text=label,
+            bg=T.SIDEBAR_BG, fg=T.SIDEBAR_FG,
+            font=(T.FONT_FAMILY, 10),
+            anchor="w", padx=14, pady=11,
+        )
+        lbl.pack(side="left", fill="x", expand=True)
+
+        # Store references for state changes
+        container._indicator = indicator
+        container._label     = lbl
+
+        # Bind click and hover on both container and label
+        for widget in (container, lbl):
+            widget.bind("<Button-1>", lambda e, v=view_name: self._show_view(v))
+            widget.bind("<Enter>",    lambda e, c=container: self._nav_hover(c, True))
+            widget.bind("<Leave>",    lambda e, c=container: self._nav_hover(c, False))
+
+        return container
+
+    def _nav_hover(self, container: tk.Frame, entering: bool) -> None:
+        """Highlight nav item on hover (unless it is already active)."""
+        if container is self._active_btn:
+            return
+        bg = T.SIDEBAR_HOVER_BG if entering else T.SIDEBAR_BG
+        container.config(bg=bg)
+        container._label.config(bg=bg)
+        container._indicator.config(bg=bg)
 
     def _build_content_area(self):
-        """Right-hand side: header bar + swappable view frame."""
-        right = tk.Frame(self, bg=CONTENT_BG)
+        right = tk.Frame(self, bg=T.CONTENT_BG)
         right.pack(side="left", fill="both", expand=True)
 
-        # Header bar
-        self._header = tk.Frame(right, bg=HEADER_BG, height=50)
+        # ── Header bar ──
+        self._header = tk.Frame(right, bg=T.PANEL_BG, height=56)
         self._header.pack(fill="x")
         self._header.pack_propagate(False)
 
-        self._header_label = tk.Label(
-            self._header,
-            text="",
-            bg=HEADER_BG,
-            font=("Segoe UI", 14, "bold"),
-            padx=20,
-        )
-        self._header_label.pack(side="left", fill="y")
+        # Left accent line
+        tk.Frame(self._header, bg=T.BALANCE_CLR, width=4).pack(side="left", fill="y")
 
-        # Content frame — views are stacked here
-        self._content = tk.Frame(right, bg=CONTENT_BG)
+        hdr_text = tk.Frame(self._header, bg=T.PANEL_BG)
+        hdr_text.pack(side="left", padx=16, fill="y", expand=False)
+
+        self._header_title = tk.Label(
+            hdr_text, text="",
+            bg=T.PANEL_BG, fg=T.TEXT_PRIMARY,
+            font=(T.FONT_FAMILY, 13, "bold"),
+        )
+        self._header_title.pack(anchor="w", pady=(10, 0))
+
+        self._header_sub = tk.Label(
+            hdr_text, text="",
+            bg=T.PANEL_BG, fg=T.TEXT_SECONDARY,
+            font=(T.FONT_FAMILY, 8),
+        )
+        self._header_sub.pack(anchor="w")
+
+        # Thin bottom border on header
+        tk.Frame(right, bg=T.CARD_BORDER, height=1).pack(fill="x")
+
+        # ── Content frame ──
+        self._content = tk.Frame(right, bg=T.CONTENT_BG)
         self._content.pack(fill="both", expand=True)
 
-        # Instantiate all views once and keep them in a dict
+        # Instantiate all views
         dashboard = DashboardView(self._content)
         self._views: dict[str, ttk.Frame] = {
-            "Dashboard":    dashboard,
+            "Dashboard":   dashboard,
             "Transactions": TransactionListView(self._content),
-            "Categories":   CategoryView(self._content),
-            "Budgets":      BudgetView(self._content),
-            "Reports":      ReportView(self._content),
+            "Categories":  CategoryView(self._content),
+            "Budgets":     BudgetView(self._content),
+            "Reports":     ReportView(self._content),
         }
-        # Give the dashboard a reference to the navigation function
         dashboard.set_navigate(self._show_view)
 
         for view in self._views.values():
@@ -147,17 +200,30 @@ class App(tk.Tk):
 
     def _show_view(self, view_name: str):
         """Raise the selected view and update sidebar highlight."""
-        self._header_label.config(text=view_name)
+        # Find subtitle
+        subtitle = next(
+            (sub for _, v, sub in _NAV_ITEMS if v == view_name), "")
 
-        if self._active_button:
-            self._active_button.config(bg=SIDEBAR_BG, fg=SIDEBAR_FG)
-        btn = self._nav_buttons[view_name]
-        btn.config(bg=SIDEBAR_ACTIVE_BG, fg=SIDEBAR_ACTIVE_FG)
-        self._active_button = btn
+        self._header_title.config(text=view_name)
+        self._header_sub.config(text=subtitle)
+
+        # Deactivate previous button
+        if self._active_btn is not None:
+            self._active_btn.config(bg=T.SIDEBAR_BG)
+            self._active_btn._label.config(bg=T.SIDEBAR_BG, fg=T.SIDEBAR_FG,
+                                           font=(T.FONT_FAMILY, 10))
+            self._active_btn._indicator.config(bg=T.SIDEBAR_BG)
+
+        # Activate new button
+        btn = self._nav_btns[view_name]
+        btn.config(bg=T.SIDEBAR_ACTIVE_BG)
+        btn._label.config(bg=T.SIDEBAR_ACTIVE_BG, fg=T.SIDEBAR_ACTIVE_FG,
+                          font=(T.FONT_FAMILY, 10, "bold"))
+        btn._indicator.config(bg="#4fc3f7")   # bright blue active indicator
+        self._active_btn = btn
 
         self._views[view_name].lift()
 
-        # Refresh data-driven views every time they are shown
         view = self._views[view_name]
         if hasattr(view, "refresh"):
             view.refresh()
