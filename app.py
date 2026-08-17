@@ -143,18 +143,20 @@ class App(tk.Tk):
 
     def _show_view(self, view_name: str):
         """Raise the selected view and update sidebar highlight."""
-        # Update header
         self._header_label.config(text=view_name)
 
-        # Highlight active nav button
         if self._active_button:
             self._active_button.config(bg=SIDEBAR_BG, fg=SIDEBAR_FG)
         btn = self._nav_buttons[view_name]
         btn.config(bg=SIDEBAR_ACTIVE_BG, fg=SIDEBAR_ACTIVE_FG)
         self._active_button = btn
 
-        # Raise the correct view frame
         self._views[view_name].lift()
+
+        # Refresh data-driven views every time they are shown
+        view = self._views[view_name]
+        if hasattr(view, "refresh"):
+            view.refresh()
 
 
 if __name__ == "__main__":
