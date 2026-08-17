@@ -1,9 +1,10 @@
 """Entry point — Smart Personal Expense & Budget Manager."""
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from utils.constants import APP_TITLE, APP_WIDTH, APP_HEIGHT
+from database.database import init_db
 from gui.dashboard import DashboardView
 from gui.transaction_list import TransactionListView
 from gui.category_view import CategoryView
@@ -29,9 +30,18 @@ class App(tk.Tk):
         self.minsize(900, 600)
         self.configure(bg=CONTENT_BG)
 
+        self._init_database()
         self._active_button: tk.Button | None = None
         self._build_layout()
         self._show_view("Dashboard")
+
+    def _init_database(self) -> None:
+        """Initialise the database; show an error and exit on failure."""
+        try:
+            init_db()
+        except Exception as exc:  # noqa: BLE001
+            messagebox.showerror("Database Error", f"Failed to initialise database:\n{exc}")
+            self.destroy()
 
     # ── Layout ────────────────────────────────────────────────────────────────
 
