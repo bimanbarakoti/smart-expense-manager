@@ -1,5 +1,31 @@
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+
+# Database (generated at runtime)
 *.db
-exports/
+*.sqlite
+*.sqlite3
+
+# Exports (generated at runtime)
+exports/*.csv
+exports/*.pdf
+
+# pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
